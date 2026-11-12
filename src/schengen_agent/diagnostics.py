@@ -58,8 +58,26 @@ def main() -> None:
     if settings.provider != "gigachat":
         print("Сейчас AGENT_PROVIDER не gigachat. Исправьте .env.")
         return
-    if not os.getenv("GIGACHAT_CREDENTIALS", "").strip():
+    credentials = os.getenv("GIGACHAT_CREDENTIALS", "")
+    if not credentials.strip():
         print("GIGACHAT_CREDENTIALS не задан. Укажите новый ключ в .env.")
+        return
+    # Do not print credential values or full exception messages: both can leak secrets.
+    for name, value in (
+        ("GIGACHAT_CREDENTIALS", credentials),
+        ("GIGACHAT_SCOPE", os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS")),
+        ("AGENT_MODEL", settings.model),
+    ):
+        if not value.isascii():
+            print(f"Конфигурация: {name} содержит не-ASCII символы "
+                  "(например, русскую заглушку). Замените значение в .env.")
+            return
+        if value != value.strip() or any(ch.isspace() for ch in value):
+            print(f"Конфигурация: {name} содержит лишние пробелы. "
+                  "Скопируйте значение заново.")
+            return
+    if credentials in ("СЮДА_НОВЫЙ_КЛЮЧ", "твой_ключ", "твой_настоящий_ключ"):
+        print("Конфигурация: вместо ключа указана заглушка.")
         return
     print(f"Провайдер: {settings.provider}, модель: {settings.model}")
     try:
