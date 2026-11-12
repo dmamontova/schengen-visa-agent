@@ -7,12 +7,15 @@ import re
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from .gigachat_compat import to_gigachat_functions
+
 
 @dataclass
 class ToolCall:
     id: str
     name: str
     arguments: dict[str, Any]
+    functions_state_id: str | None = None
 
 
 @dataclass
@@ -176,24 +179,20 @@ class GigaChatProvider:
             elif role == "assistant" and m.get("tool_calls"):
                 # GigaChat uses one function_call per message (not OpenAI tool_calls).
                 for tc in m["tool_calls"]:
-                    converted.append(Messages(
-                        role=MessagesRole.ASSISTANT,
-                        content="",
-                        function_call={
+                    data = {
+                        "role": MessagesRole.ASSISTANT,
+                        "content": "",
+                        "function_call": {
                             "name": tc["function"]["name"],
                             "arguments": json.loads(tc["function"]["arguments"]),
                         },
-                    ))
+                    }
+                    if tc.get("functions_state_id"):
+                        data["functions_state_id"] = tc["functions_state_id"]
+                    converted.append(Messages(**data))
             else:
                 converted.append(Messages(role=role, content=m.get("content") or ""))
-        available = [
-            {
-                "name": spec["function"]["name"],
-                "description": spec["function"]["description"],
-                "parameters": spec["function"]["parameters"],
-            }
-            for spec in tools
-        ]
+        available = to_gigachat_functions(tools)
         result = self.client.chat(Chat(messages=converted, functions=available, function_call="auto"))
         message = result.choices[0].message
         if message.function_call:
@@ -202,7 +201,10 @@ class GigaChatProvider:
             if isinstance(args, str):
                 args = json.loads(args)
             return ModelReply(
-                calls=[ToolCall(f"gigachat-{len(messages)}", call.name, args)]
+                calls=[ToolCall(
+                    f"gigachat-{len(messages)}", call.name, args,
+                    functions_state_id=message.functions_state_id,
+                )]
             )
         return ModelReply(content=message.content)
 

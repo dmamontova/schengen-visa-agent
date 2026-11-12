@@ -67,6 +67,7 @@ class VisaAgent:
                     "id": call.id,
                     "type": "function",
                     "function": {"name": call.name, "arguments": args_json},
+                    "functions_state_id": call.functions_state_id,
                 })
             messages.append({
                 "role": "assistant",

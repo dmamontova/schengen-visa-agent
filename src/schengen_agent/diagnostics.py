@@ -8,7 +8,7 @@ import os
 
 from .config import Settings
 from .providers import GigaChatProvider
-from .schemas import tool_specifications
+ from .schemas import tool_specifications
 
 
 def describe_failure(exc: BaseException) -> str:
@@ -124,7 +124,49 @@ def main() -> None:
         return
 
     try:
-        print("3/3 Вызов модели со схемами инструментов...", flush=True)
+        print("3/3 Проверка пользовательских функций...", flush=True)
+        # Minimal function: if even this is rejected, the model/account may
+        # not support functions. No credentials or raw response is printed.
+        with GigaChat(
+            credentials=os.environ["GIGACHAT_CREDENTIALS"],
+            scope=os.getenv("GIGACHAT_SCOPE", "GIGACHAT_API_PERS"),
+            model=settings.model,
+            timeout=settings.timeout_sec,
+            verify_ssl_certs=True,
+            ca_bundle_file=os.getenv("GIGACHAT_CA_BUNDLE_FILE") or None,
+        ) as client:
+            client.chat(Chat(
+                model=settings.model,
+                messages=[Messages(
+                    role=MessagesRole.USER, content="Проверь страну Франция."
+                )],
+                functions=[{
+                    "name": "check_country",
+                    "description": "Определи страну пользователя",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "country": {
+                                "type": "string",
+                                "description": "Страна",
+                            },
+                        },
+                        "required": ["country"],
+                    },
+                }],
+                function_call="auto",
+            ))
+        print("   OK: минимальная функция принята сервером")
+    except Exception as exc:
+        print("   ОШИБКА минимальной функции —", describe_failure(exc))
+        print(
+            "   Проблема не в наших Pydantic-схемах: даже простой "
+            "пример не работает. Возможна неподдерживаемая модель или "
+            "ограничение доступа к функциям. Проверьте поддержку в Sber Studio."
+        )
+        return
+    try:
+        print("   Проверяем три инструмента проекта...", flush=True)
         provider = GigaChatProvider(settings.model, settings.timeout_sec)
         reply = provider.complete(
             [
@@ -136,10 +178,10 @@ def main() -> None:
         if reply.calls:
             print("   OK: модель запросила инструмент", ", ".join(c.name for c in reply.calls))
         else:
-            print("   OK: модель ответила без инструментов (это допустимо при auto).")
+            print("   OK: модель ответила без инструментов (допустимо при auto).")
     except Exception as exc:
-        print("   ОШИБКА —", describe_failure(exc))
-        print("   Первые два этапа успешны: ошибка связана с вызовом функций или адаптером.")
+        print("   ОШИБКА схем проекта —", describe_failure(exc))
+        print("   Минимальная функция работает, проверьте адаптер и контракты.")
 
 
 if __name__ == "__main__":

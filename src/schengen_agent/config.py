@@ -24,7 +24,7 @@ class Settings:
         provider = os.getenv("AGENT_PROVIDER", "mock").strip().lower()
         if provider not in {"mock", "openai", "gigachat"}:
             raise ValueError("AGENT_PROVIDER must be mock, openai or gigachat")
-        default_model = {"mock": "demo", "openai": "gpt-4o-mini", "gigachat": "GigaChat"}
+        default_model = {"mock": "demo", "openai": "gpt-4o-mini", "gigachat": "GigaChat-2"}
         max_steps = int(os.getenv("AGENT_MAX_STEPS", "6"))
         timeout_sec = float(os.getenv("AGENT_TIMEOUT_SEC", "10"))
         if not 1 <= max_steps <= 20:
