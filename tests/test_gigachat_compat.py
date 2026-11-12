@@ -22,6 +22,5 @@ def test_gigachat_functions_have_supported_plain_schema():
 def test_optional_fields_not_required_for_gigachat():
     specs = to_gigachat_functions(tool_specifications())
     stats = next(f for f in specs if f["name"] == "get_visa_statistics")
-    assert "moscow" in next(f for f in specs if f["name"] == "get_visa_requirements")["parameters"]["properties"]["city"]["description"] or True
     assert stats["parameters"]["properties"]["period_days"]["type"] == "integer"
     assert "city" not in stats["parameters"]["required"]
