@@ -28,6 +28,14 @@ def main() -> None:
     question = args.question or input("Вопрос о визе: ").strip()
     outcome = agent.run(question)
     print("\n" + outcome.answer)
+    if args.fault_demo and not any(
+        item["tool"] == "search_visa_cases" for item in outcome.trace
+    ):
+        print(
+            "\n[DEMO NOT EXERCISED] Модель не вызвала search_visa_cases. "
+            "Ошибка инструмента не была продемонстрирована. "
+            "Повторите с явной просьбой искать по всем городам."
+        )
     if args.trace:
         print("\nTRACE:")
         print(json.dumps(outcome.trace, ensure_ascii=False, indent=2))

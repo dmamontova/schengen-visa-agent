@@ -87,3 +87,19 @@ def test_greeting_is_not_labeled_with_data_warning():
             return ModelReply(content="Привет!")
     agent = VisaAgent(GreetingProvider(), ToolExecutor(LocalData(ROOT / "data")))
     assert agent.run("Привет").answer == "Привет!"
+
+
+
+def test_country_only_search_does_not_need_city():
+    """A broad query searches all cities; city is optional in Pydantic."""
+    executor = ToolExecutor(LocalData(ROOT / "data"))
+    result = executor.execute("search_visa_cases", {"country": "italy"})
+    assert "error" not in result
+    assert result["matches"] == 12
+
+
+def test_tool_contract_says_do_not_request_optional_city():
+    from schengen_agent.schemas import TOOL_DESCRIPTIONS, SearchVisaCasesArgs
+    assert "Do NOT ask the user for the city first" in TOOL_DESCRIPTIONS["search_visa_cases"]
+    assert not SearchVisaCasesArgs.model_fields["city"].is_required()
+    assert not SearchVisaCasesArgs.model_fields["had_schengen_before"].is_required()
