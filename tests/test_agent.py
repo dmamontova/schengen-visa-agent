@@ -103,3 +103,22 @@ def test_tool_contract_says_do_not_request_optional_city():
     assert "Do NOT ask the user for the city first" in TOOL_DESCRIPTIONS["search_visa_cases"]
     assert not SearchVisaCasesArgs.model_fields["city"].is_required()
     assert not SearchVisaCasesArgs.model_fields["had_schengen_before"].is_required()
+
+
+
+def test_system_prompt_uses_exact_statistical_terms():
+    from schengen_agent.agent import SYSTEM_PROMPT
+    assert "НАБЛЮДАЕМАЯ ДОЛЯ" in SYSTEM_PROMPT
+    assert "НЕ вероятность" in SYSTEM_PROMPT
+    assert "МЕДИАНА" in SYSTEM_PROMPT
+
+
+def test_statistics_are_medians_and_observed_shares():
+    from schengen_agent.schemas import VisaStatisticsArgs
+    data = LocalData(ROOT / "data")
+    result = data.get_visa_statistics(VisaStatisticsArgs(country="france"))
+    assert result["case_count"] == 12
+    assert result["known_decisions"] == 12
+    assert result["median_processing_days"] == 19
+    assert result["observed_approval_rate"] == 0.833
+    assert result["difficulty_index_0_100"] == 31.3

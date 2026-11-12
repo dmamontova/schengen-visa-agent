@@ -64,6 +64,9 @@ TOOL_DESCRIPTIONS = {
         "Use for waiting times, processing times or comparisons. Do not use to get "
         "official requirements or individual applicant stories. "
         "Accept country slug france/italy/spain, optional filing city and 30..365 days. "
+        "Numerical fields are medians, NOT means. observed_approval_rate is "
+        "the SYNTHETIC sample share of approvals, NEVER a real probability "
+        "of approval for an applicant. The difficulty index is educational. "
         "Never call this real/current visa statistics."
     ),
     "get_visa_requirements": (
