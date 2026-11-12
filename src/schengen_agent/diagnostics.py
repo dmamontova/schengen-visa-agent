@@ -8,7 +8,7 @@ import os
 
 from .config import Settings
 from .providers import GigaChatProvider
- from .schemas import tool_specifications
+from .schemas import tool_specifications
 
 
 def describe_failure(exc: BaseException) -> str:
