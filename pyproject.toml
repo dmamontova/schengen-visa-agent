@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "schengen-visa-agent"
+version = "0.1.0"
+description = "Educational agent with tools for synthetic Schengen visa analytics"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic>=2.6,<3",
+    "python-dotenv>=1.0,<2"
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.40,<3"]
+gigachat = ["gigachat>=0.2.0,<0.3"]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+schengen-agent = "schengen_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

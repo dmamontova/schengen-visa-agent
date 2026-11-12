@@ -1,0 +1,35 @@
+{
+  "france": {
+    "illustrative_documents": [
+      "Заграничный паспорт",
+      "Заполненная анкета",
+      "Фотография",
+      "Медицинская страховка",
+      "Подтверждение цели поездки и проживания",
+      "Подтверждение финансовых средств"
+    ],
+    "official_portal": "https://france-visas.gouv.fr/en/la-demarche"
+  },
+  "italy": {
+    "illustrative_documents": [
+      "Заграничный паспорт",
+      "Заполненная анкета",
+      "Фотография",
+      "Медицинская страховка",
+      "Подтверждение цели поездки и проживания",
+      "Подтверждение финансовых средств"
+    ],
+    "official_portal": "https://vistoperitalia.esteri.it/"
+  },
+  "spain": {
+    "illustrative_documents": [
+      "Заграничный паспорт",
+      "Заполненная анкета",
+      "Фотография",
+      "Медицинская страховка",
+      "Подтверждение цели поездки и проживания",
+      "Подтверждение финансовых средств"
+    ],
+    "official_portal": "https://exteriores.gob.es/es/ServiciosAlCiudadano/Paginas/Servicios-consulares.aspx?scca=Visados&scco=Rusia&scd=203&scs=Visado+de+estancia+%28visado+Schengen%29"
+  }
+}
