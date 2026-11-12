@@ -50,3 +50,14 @@ def test_repeated_identical_call_blocked():
     result = VisaAgent(LoopingProvider(), executor, max_steps=4).run("Тест")
     assert len(result.trace) == 2  # third/fourth identical calls not executed
     assert "лимит" in result.answer.lower()
+
+
+def test_provider_error_is_diagnostic_without_leaking_secrets():
+    class FailingProvider:
+        def complete(self, messages, tools):
+            raise RuntimeError("Authorization SECRET_DO_NOT_LOG")
+    executor = ToolExecutor(LocalData(ROOT / "data"))
+    result = VisaAgent(FailingProvider(), executor).run("Тест")
+    assert "RuntimeError" in result.answer
+    assert "SECRET_DO_NOT_LOG" not in result.answer
+    assert result.trace == []

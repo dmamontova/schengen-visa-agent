@@ -45,10 +45,14 @@ class VisaAgent:
         for step in range(1, self.max_steps + 1):
             try:
                 reply = self.provider.complete(messages, tool_specifications())
-            except Exception:
-                # Do not leak credentials, raw HTTP responses or tracebacks.
+            except Exception as exc:
+                # Only the exception class is exposed: exception messages might
+                # include HTTP headers, auth tokens, or user-supplied contents.
+                reason = type(exc).__name__
                 return AgentResult(
-                    "Модель временно недоступна. Попробуйте позже.",
+                    f"Не удалось вызвать модель ({reason}). "
+                    "Запустите python -m schengen_agent.diagnostics "
+                    "для безопасной диагностики подключения.",
                     step, self.executor.call_log.copy(),
                 )
             if not reply.calls:
