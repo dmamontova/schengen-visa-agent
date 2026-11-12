@@ -78,9 +78,34 @@ pip install -e ".[gigachat]"
 # GIGACHAT_CREDENTIALS=<ваш ключ>
 ~~~
 
+### TLS-сертификаты GigaChat (macOS)
+
+Если возникает `ConnectError`, причина может быть в сети или
+сертификате. Проверьте доступность серверов:
+
+~~~bash
+nc -vz -G 5 api.giga.chat 443
+nc -vz -G 5 ngw.devices.sberbank.ru 9443
+~~~
+
+Для доверенного подключения загрузите **Russian Trusted Root CA**
+по официальной инструкции Сбера
+(https://developers.sber.ru/docs/ru/gigachat/certificates).
+Сохраните PEM-сертификат локально, например в
+`./.certs/russian_trusted_root_ca_pem.crt`, и добавьте в **локальный**
+`.env` абсолютный путь:
+
+~~~dotenv
+GIGACHAT_CA_BUNDLE_FILE=/Users/USERNAME/schengen-visa-agent/.certs/russian_trusted_root_ca_pem.crt
+~~~
+
+**Не отключайте проверку TLS** и не добавляйте сертификаты или секреты
+в GitHub. Папка `.certs/` игнорируется Git. Проверьте файл командой
+`openssl x509 -in .certs/russian_trusted_root_ca_pem.crt -noout -subject`.
+
 ### Если GigaChat отвечает «Модель недоступна»
 
-Сначала обновите код: \`git pull\` (при SSH-клонировании),
+Сначала обновите код: `git pull` (при SSH-клонировании),
 затем запустите проверку по этапам:
 
 ~~~bash
@@ -88,15 +113,15 @@ python -m schengen_agent.diagnostics
 ~~~
 
 Диагностика **не выводит ключ или сырые сообщения сервера**. Она
-проверит доступность \`GET /models\`, простой диалог и генерацию
+проверит доступность `GET /models`, простой диалог и генерацию
 аргументов инструментов. При ошибке печатает только тип исключения,
-HTTP-статус, если доступен, и подсказку. Если \`GET /models\` проходит,
+HTTP-статус, если доступен, и подсказку. Если `GET /models` проходит,
 а вызов с функциями не проходит, проблема, вероятно, в адаптере
 или схеме инструментов, а не в логине.
 
 Для macOS с GigaChat может потребоваться доверенный сертификат
 Минцифры (см. https://developers.sber.ru/docs/ru/gigachat/certificates).
-Не публикуйте \`.env\` и не пересылайте \`GIGACHAT_CREDENTIALS\`.
+Не публикуйте `.env` и не пересылайте `GIGACHAT_CREDENTIALS`.
 
 **OpenAI-совместимый API:**
 

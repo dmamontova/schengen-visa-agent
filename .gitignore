@@ -19,3 +19,6 @@ dist/
 traces/
 *.log
 .DS_Store
+
+# Local CA certificates (not credentials, but machine-local configuration)
+.certs/

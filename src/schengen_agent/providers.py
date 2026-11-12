@@ -158,6 +158,7 @@ class GigaChatProvider:
             model=model,
             timeout=timeout_sec,
             verify_ssl_certs=True,
+            ca_bundle_file=os.getenv("GIGACHAT_CA_BUNDLE_FILE") or None,
         )
 
     def complete(self, messages: list[dict], tools: list[dict]) -> ModelReply:

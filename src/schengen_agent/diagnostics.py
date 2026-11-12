@@ -30,6 +30,14 @@ def describe_failure(exc: BaseException) -> str:
         cause = cause.__cause__ or cause.__context__
     label = f"{name} (HTTP {status})" if isinstance(status, int) else name
     names = " ".join([name, *modules]).lower()
+    certificate_chain = []
+    cause = exc
+    for _ in range(5):
+        if cause is None:
+            break
+        certificate_chain.append(type(cause).__name__.lower())
+        cause = cause.__cause__ or cause.__context__
+    is_ssl = any("ssl" in v or "certificat" in v for v in certificate_chain)
     if status == 401:
         hint = "Проверьте новый Authorization Key и срок действия авторизации."
     elif status == 403:
@@ -38,8 +46,10 @@ def describe_failure(exc: BaseException) -> str:
         hint = "Достигнут лимит запросов/квоты; проверьте кабинет."
     elif status in (400, 422):
         hint = "Сервер отклонил параметры запроса или схему функций."
-    elif "ssl" in names or "certificate" in names or "connect" in names:
-        hint = "Проверьте HTTPS-подключение и сертификаты Минцифры."
+    elif is_ssl:
+        hint = "Похоже на ошибку TLS. Настройте корневой сертификат Минцифры через GIGACHAT_CA_BUNDLE_FILE."
+    elif "connect" in names or "connect" in " ".join(certificate_chain):
+        hint = "Соединение не установлено. Проверьте доступ к API и OAuth-хосту, DNS, VPN и TLS."
     elif "validation" in names:
         hint = "SDK отклонил формат запроса/ответа; проверьте совместимость версии."
     elif status is not None and status >= 500:
@@ -96,6 +106,7 @@ def main() -> None:
             model=settings.model,
             timeout=settings.timeout_sec,
             verify_ssl_certs=True,
+            ca_bundle_file=os.getenv("GIGACHAT_CA_BUNDLE_FILE") or None,
         ) as client:
             print("1/3 Авторизация и список моделей...", flush=True)
             models = client.get_models()
