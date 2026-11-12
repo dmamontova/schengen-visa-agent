@@ -61,3 +61,29 @@ def test_provider_error_is_diagnostic_without_leaking_secrets():
     assert "RuntimeError" in result.answer
     assert "SECRET_DO_NOT_LOG" not in result.answer
     assert result.trace == []
+
+
+def test_real_model_cannot_omit_synthetic_data_notice():
+    """A stub provider deliberately omits the disclaimer."""
+    class UnreliableProvider:
+        def complete(self, messages, tools):
+            if not any(item["role"] == "tool" for item in messages):
+                return ModelReply(calls=[
+                    ToolCall("call-1", "search_visa_cases", {"country": "france"})
+                ])
+            return ModelReply(content="Одобрения были. Обычно ожидание 10 дней.")
+    executor = ToolExecutor(LocalData(ROOT / "data"))
+    result = VisaAgent(UnreliableProvider(), executor).run(
+        "Сколько ждать визу во Францию? Есть похожие случаи?"
+    )
+    assert result.trace[0]["tool"] == "search_visa_cases"
+    assert result.answer.startswith("⚠️ Учебная демонстрация")
+    assert "Сводная статистика" in result.answer
+
+
+def test_greeting_is_not_labeled_with_data_warning():
+    class GreetingProvider:
+        def complete(self, messages, tools):
+            return ModelReply(content="Привет!")
+    agent = VisaAgent(GreetingProvider(), ToolExecutor(LocalData(ROOT / "data")))
+    assert agent.run("Привет").answer == "Привет!"
