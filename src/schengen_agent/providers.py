@@ -101,7 +101,16 @@ class MockProvider:
                         f"В учебной выборке {obj['case_count']} кейсов; "
                         f"медиана ожидания записи: {obj['median_appointment_wait_days']} дн., "
                         f"рассмотрения: {obj['median_processing_days']} дн. "
-                        f"Доля положительных решений: {obj['observed_approval_rate']}."
+                        + (
+                            "Наблюдаемая доля одобрений: недостаточно данных "
+                            "(менее 10 известных решений)."
+                            if obj["observed_approval_rate"] is None else
+                            "Наблюдаемая доля одобрений в учебной выборке: "
+                            f"{obj['observed_approval_rate'] * 100:.1f}%."
+                        ) + (
+                            "" if obj["difficulty_index_0_100"] is None
+                            else f" Учебный индекс: {obj['difficulty_index_0_100']}/100."
+                        )
                     )
                 elif "official_portal" in obj:
                     successes.append(
@@ -121,6 +130,17 @@ class MockProvider:
         return ModelReply(content="\n".join(out))
 
 
+def _parse_arguments(raw: Any) -> dict[str, Any]:
+    """Malformed model-generated JSON becomes a normal tool validation error."""
+    if isinstance(raw, dict):
+        return raw
+    try:
+        obj = json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return {"__invalid_json_arguments__": True}
+    return obj if isinstance(obj, dict) else {"__arguments_must_be_object__": True}
+
+
 class OpenAIProvider:
     def __init__(self, model: str, timeout_sec: float):
         from openai import OpenAI
@@ -133,15 +153,32 @@ class OpenAIProvider:
         )
 
     def complete(self, messages: list[dict], tools: list[dict]) -> ModelReply:
+        # The internal conversation also carries GigaChat-only fields.
+        # Strip them before calling the strict OpenAI-compatible endpoint.
+        normalized = []
+        for message in messages:
+            clean = dict(message)
+            if message["role"] == "assistant" and message.get("tool_calls"):
+                clean["tool_calls"] = [
+                    {
+                        "id": call["id"],
+                        "type": "function",
+                        "function": call["function"],
+                    }
+                    for call in message["tool_calls"]
+                ]
+            if message["role"] == "tool":
+                clean.pop("name", None)
+            normalized.append(clean)
         response = self.client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=normalized,
             tools=tools,
             tool_choice="auto",
         )
         msg = response.choices[0].message
         calls = [
-            ToolCall(c.id, c.function.name, json.loads(c.function.arguments))
+            ToolCall(c.id, c.function.name, _parse_arguments(c.function.arguments))
             for c in (msg.tool_calls or [])
         ]
         return ModelReply(content=msg.content, calls=calls)
@@ -198,8 +235,7 @@ class GigaChatProvider:
         if message.function_call:
             call = message.function_call
             args = call.arguments
-            if isinstance(args, str):
-                args = json.loads(args)
+            args = _parse_arguments(args)
             return ModelReply(
                 calls=[ToolCall(
                     f"gigachat-{len(messages)}", call.name, args,

@@ -14,8 +14,10 @@ class DataUnavailable(Exception):
 
 
 class LocalData:
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, *, as_of: date | None = None):
         self.data_dir = Path(data_dir)
+        # Inject the clock in tests; production continues to use the current day.
+        self.as_of = as_of
 
     def _load(self, filename: str):
         with (self.data_dir / filename).open("r", encoding="utf-8") as f:
@@ -29,7 +31,7 @@ class LocalData:
         ]
 
     def get_visa_statistics(self, args: VisaStatisticsArgs) -> dict:
-        today = date.today()
+        today = self.as_of or date.today()
         cutoff = today - timedelta(days=args.period_days)
         records = [
             c for c in self._filter(args.country, args.city)

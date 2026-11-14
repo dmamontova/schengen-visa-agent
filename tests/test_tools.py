@@ -1,3 +1,5 @@
+from datetime import date
+
 """Deterministic, network-free level-1 and failure-injection tests."""
 from pathlib import Path
 
@@ -7,7 +9,7 @@ from schengen_agent.tools import FaultInjector, ToolExecutor
 
 
 def executor(faults=None):
-    return ToolExecutor(LocalData(ROOT / "data"), FaultInjector(faults))
+    return ToolExecutor(LocalData(ROOT / "data", as_of=date(2026, 11, 14)), FaultInjector(faults))
 
 
 def test_validation_and_unknown_tool():
@@ -57,3 +59,29 @@ def test_one_transient_timeout_is_retried_safely():
     service = executor({"search_visa_cases": ["timeout"]})
     res = service.execute("search_visa_cases", {"country": "italy"})
     assert "cases" in res
+
+
+def test_missing_data_file_is_data_error_and_not_retried(tmp_path):
+    service = ToolExecutor(LocalData(tmp_path, as_of=date(2026, 11, 14)))
+    result = service.execute("get_visa_statistics", {"country": "france"})
+    assert result["error"]["type"] == "data_error"
+    assert service.call_log[-1]["attempts"] == 1
+
+
+def test_transient_fault_and_retry_count():
+    service = executor({"search_visa_cases": ["timeout", "timeout"]})
+    result = service.execute("search_visa_cases", {"country": "italy"})
+    assert result["error"]["type"] == "timeout"
+    assert service.call_log[-1]["attempts"] == 2
+
+
+def test_date_is_injectable_and_deterministic():
+    from schengen_agent.schemas import VisaStatisticsArgs
+    from schengen_agent.data import DataUnavailable
+    import pytest
+
+    old = LocalData(ROOT / "data", as_of=date(2026, 11, 14))
+    assert old.get_visa_statistics(VisaStatisticsArgs(country="france"))["case_count"] == 12
+    future = LocalData(ROOT / "data", as_of=date(2027, 4, 1))
+    with pytest.raises(DataUnavailable):
+        future.get_visa_statistics(VisaStatisticsArgs(country="france"))
